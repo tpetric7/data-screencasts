@@ -7,6 +7,8 @@ output: html_document
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
+## Preparation
+
 * 5 distinct levels (can order with parse_number)
   * 0-250000
   * 250000-350000
@@ -63,6 +65,8 @@ Text data!
 
 description: The description of the listing from Zillow.
 
+## Libraries
+
 ```{r}
 library(tidymodels)
 library(tidyverse)
@@ -90,6 +94,14 @@ austin_zip_codes <- zip_code_db %>%
 library(fuzzyjoin)
 ```
 
+## Unzip & Load
+
+```{r}
+exdir = getwd()
+unzip(paste0(exdir, "/sliced-s01e11-semifinals.zip"), exdir = exdir)
+```
+
+
 ```{r}
 process_data <- function(d) {
   d %>%
@@ -101,14 +113,16 @@ process_data <- function(d) {
     distinct(uid, .keep_all = TRUE)
 }
 
-dataset <- read_csv("~/Downloads/sliced-s01e11-semifinals/train.csv") %>%
+dataset <- read_csv("train.csv") %>%
+# dataset <- read_csv("~/Downloads/sliced-s01e11-semifinals/train.csv") %>%
   janitor::clean_names() %>%
   mutate(price_range = fct_reorder(price_range, parse_number(price_range))) %>%
   mutate(price_range_number = as.integer(price_range))
 
 price_levels <- levels(dataset$price_range)
 
-holdout <- read_csv("~/Downloads/sliced-s01e11-semifinals/test.csv") %>%
+holdout <- read_csv("test.csv") %>%
+# holdout <- read_csv("~/Downloads/sliced-s01e11-semifinals/test.csv") %>%
   janitor::clean_names() %>%
   process_data()
 
@@ -121,6 +135,8 @@ test <- testing(spl)
 train_5fold <- train %>%
   vfold_cv(10)
 ```
+
+## EDA
 
 ```{r}
 summarize_price <- function(tbl) {
@@ -155,6 +171,8 @@ train %>%
   labs(x = "% of homes",
        y = "Price range")
 ```
+
+## XG Boost
 
 Before we do EDA, let's train our first model
 
@@ -203,7 +221,7 @@ Check out the importances:
 
 ```{r}
 xg_fit <- xg_wf %>%
-  finalize_workflow(select_best(xg_tune)) %>%
+  finalize_workflow(select_best(xg_tune2)) %>%
   fit(train)
 
 importances <- xgboost::xgb.importance(mod = extract_fit_engine(xg_fit))
@@ -218,6 +236,9 @@ Catboost!
 
 ```{r}
 library(treesnip)
+
+parsnip::set_dependency("boost_tree", eng = "catboost", "catboost")
+parsnip::set_dependency("boost_tree", eng = "catboost", "treesnip")
 
 rec <- recipe(price_range ~ ., data = train) %>%
   step_rm(uid, city, description, price_range_number, home_type,
@@ -242,6 +263,11 @@ cb_tune <- cb_wf %>%
 
 autoplot(cb_tune)
 ```
+
+```{r}
+cb_tune$.notes
+```
+
 
 ```{r}
 cb_fit <- cb_wf %>%
@@ -282,19 +308,21 @@ apply_holdout <- function(wf) {
 
 xg_fit %>%
   apply_holdout() %>%
-  write_csv("~/Desktop/attempt2.csv")
+  write_csv("attempt2.csv")
+  # write_csv("~/Desktop/attempt2.csv")
 ```
 
 Oh! I just realized I never fit the data on the entire dataset including testing. I'm leaving performance on the table. Will do that next.
 
 ```{r}
 xg_fit_full <- xg_wf %>%
-  finalize_workflow(select_best(xg_tune)) %>%
+  finalize_workflow(select_best(xg_tune2)) %>%
   fit(dataset)
 
 xg_fit_full %>%
   apply_holdout() %>%
-  write_csv("~/Desktop/attempt3.csv")
+  write_csv("attempt3.csv")
+  # write_csv("~/Desktop/attempt3.csv")
 ```
 
 
@@ -306,7 +334,8 @@ look at:
 
 
 ```{r}
-read_csv("~/Downloads/sliced-s01e11-semifinals/sample_submission.csv")
+read_csv("sample_submission.csv")
+# read_csv("~/Downloads/sliced-s01e11-semifinals/sample_submission.csv")
 ```
 
 

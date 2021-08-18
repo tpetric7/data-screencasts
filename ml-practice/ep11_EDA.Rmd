@@ -76,14 +76,16 @@ doParallel::registerDoParallel(cores = 4)
 ```
 
 ```{r}
-dataset <- read_csv("~/Downloads/sliced-s01e11-semifinals/train.csv") %>%
+dataset <- read_csv("train.csv") %>%
+# dataset <- read_csv("~/Downloads/sliced-s01e11-semifinals/train.csv") %>%
   janitor::clean_names() %>%
   mutate(price_range = fct_reorder(price_range, parse_number(price_range))) %>%
   mutate(price_range_number = as.integer(price_range))
 
 price_levels <- levels(dataset$price_range)
 
-holdout <- read_csv("~/Downloads/sliced-s01e11-semifinals/test.csv") %>%
+holdout <- read_csv("test.csv") %>%
+# holdout <- read_csv("~/Downloads/sliced-s01e11-semifinals/test.csv") %>%
   janitor::clean_names()
 
 set.seed(2021)
@@ -283,7 +285,8 @@ ggmap(austin_map) +
 ```
 
 ```{r}
-anim_save("~/Desktop/austin_houses.gif")
+anim_save("austin_houses.gif")
+# anim_save("~/Desktop/austin_houses.gif")
 ```
 
 Let's work with text!
