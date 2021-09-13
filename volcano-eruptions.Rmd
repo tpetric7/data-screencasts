@@ -122,7 +122,7 @@ anim_graph <- eruptions %>%
   scale_color_gradient2(low = "blue", high = "red",
                         midpoint = log10(.01),
                         trans = "log10",
-                        guide = FALSE) +
+                        guide = "none") +
   scale_size_continuous(range = c(1, 6)) +
   # transition_reveal(start_year) +
   transition_time(start_year) +
