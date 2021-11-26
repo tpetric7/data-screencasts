@@ -29,9 +29,12 @@ theme_set(theme_light())
 Dowload the weekly data and make available in the `tt` object.
 
 ```{r Load}
-
 tt <- tt_load("2021-11-23")
+```
 
+# EDA
+
+```{r}
 episodes <- tt$episodes %>%
   select(-serial_title) %>%
   fill(season_number) %>%
@@ -39,7 +42,11 @@ episodes <- tt$episodes %>%
          episode = fct_reorder(episode, first_aired),
          episode_title = fct_reorder(episode_title, first_aired),
          overall_episode_number = as.integer(episode_title))
+```
 
+## Davies' years
+
+```{r}
 episodes %>%
   filter(season_number <= 4) %>%
   ggplot(aes(episode_title, uk_viewers, fill = factor(season_number))) +
@@ -49,7 +56,11 @@ episodes %>%
        y = "# of UK viewers (millions)",
        title = "UK Viewers per episode of Doctor Who (Davies years)",
        fill = "Season")
+```
 
+## Popularity of Davies' episodes
+
+```{r}
 episodes %>%
   filter(season_number <= 4) %>%
   ggplot(aes(episode_title, rating)) +
@@ -60,7 +71,11 @@ episodes %>%
        y = "Average rating (IMDb)",
        title = "Popularity of episodes (Davies years)",
        fill = "Season")
+```
 
+## Rating of episodes
+
+```{r}
 episodes %>%
   filter(!is.na(rating)) %>%
   ggplot(aes(as.numeric(episode_title), rating)) +
@@ -75,16 +90,24 @@ episodes %>%
        y = "Average rating (IMDb)",
        title = "Rating of episodes over time",
        color = "Season")
+```
 
+## UK viewers of episodes
+
+```{r}
 episodes %>%
   ggplot(aes(as.numeric(episode_title), uk_viewers, fill = factor(season_number))) +
   geom_col() +
+  # geom_smooth(method = "loess") +
+  geom_smooth(method = "lm") +
   theme(axis.text.x = element_text(angle = 90, hjust = 1)) +
   labs(x = "",
        y = "# of UK viewers (millions)",
-       title = "UK Viewers per episode of Doctor Who (Davies years)",
+       title = "UK Viewers per episode of Doctor Who",
        fill = "Season")
 ```
+
+## Function
 
 ```{r}
 summarize_episodes <- function(tbl) {
@@ -92,14 +115,24 @@ summarize_episodes <- function(tbl) {
     summarize(avg_rating = mean(rating, na.rm = TRUE),
               avg_viewers = mean(uk_viewers, na.rm = TRUE),
               n_episodes = n(),
-              t_test = list(broom::tidy(t.test(rating[!is.na(rating)])))) %>%
+              t_test = 
+                list(broom::tidy(t.test(rating[!is.na(rating)])))) %>%
     unnest(t_test)
 }
 
+```
+
+## Summarize table
+
+```{r}
 episodes %>%
   group_by(season_number) %>%
   summarize_episodes()
+```
 
+## Rating of writers
+
+```{r}
 episodes %>%
   inner_join(tt$writers, by = "story_number") %>%
   group_by(writer = fct_lump(writer, 6)) %>%
@@ -112,6 +145,8 @@ episodes %>%
   labs(x = "Average rating (w/ 95% confidence interval)",
        y = "Writer")
 ```
+
+## Popularity of writers & episodes
 
 ```{r}
 episodes %>%
@@ -127,7 +162,10 @@ episodes %>%
   labs(y = "Average IMDb Rating",
        x = "") +
   labs(title = "Prolific writers tended to write episodes in line with their seasons' popularity")
+```
 
+
+```{r}
 episodes %>%
   inner_join(tt$director, by = "story_number") %>%
   mutate(director = fct_lump(director, 6)) %>%
@@ -142,7 +180,7 @@ episodes %>%
        x = "")
 ```
 
-
+# Test of popularity
 
 How would we do a statistical test of "does one writer make unusually (un)popular episodes?
 
@@ -155,21 +193,32 @@ writers_spread <- episodes %>%
   janitor::clean_names()
 ```
 
+### Rating development
+
 ```{r}
 episodes %>%
   ggplot(aes(overall_episode_number, rating)) +
   geom_line() +
   geom_smooth(method = "gam", formula = y ~ s(x, k = 3))
+```
 
+### Predictions
+
+```{r}
 episodes_no_na <- episodes %>%
   filter(!is.na(rating))
 
+library(splines)
 episode_predictions <- lm(rating ~
      ns(overall_episode_number, 3),
    episodes_no_na) %>%
   broom::augment(data = episodes_no_na) %>%
   select(episode_title, story_number, rating, .fitted, .resid)
+```
 
+### Boxplot of predicitons
+
+```{r}
 episode_predictions %>%
   inner_join(tt$writers) %>%
   mutate(writer = fct_lump(writer, 6),
@@ -177,7 +226,11 @@ episode_predictions %>%
   ggplot(aes(.resid, writer)) +
   geom_boxplot() +
   labs(x = "Residual rating relative to position in series")
+```
 
+# Regression
+
+```{r}
 library(splines)
 lm(rating ~
      ns(overall_episode_number, 3)+
@@ -188,12 +241,6 @@ lm(rating ~
    writers_spread) %>%
   summary()
 ```
-
-```{r}
-
-```
-
-
 
 
 # Readme
