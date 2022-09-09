@@ -34,25 +34,36 @@ lego_datasets <- tibble(file = dir("lego-data", full.names = TRUE)) %>%
 
 lego_datasets$sets
 
-lego_datasets$sets %>%
+lego_datasets11 <- lego_datasets[11] %>% 
+  tibble() %>% 
+  unnest(cols = c(.))
+
+lego_datasets11 %>% 
+# lego_datasets$sets %>%
   ggplot(aes(year)) +
   geom_histogram()
 
-lego_datasets$sets %>%
+lego_datasets11 %>% 
+# lego_datasets$sets %>%
   count(year) %>%
   ggplot(aes(year, n)) +
   geom_col() +
   labs(y = "# of LEGO sets")
 
-lego_datasets$sets %>%
+lego_datasets11 %>% 
+# lego_datasets$sets %>%
   group_by(name) %>%
   summarize(n_sets = n(),
             year_first = min(year),
             year_last = max(year)) %>%
   arrange(desc(n_sets))
 
-sets_with_themes <- lego_datasets$sets %>%
-  left_join(lego_datasets$themes %>%
+lego_datasets12 <- lego_datasets[12] %>% tibble() %>% unnest(c(.))
+
+sets_with_themes <- lego_datasets11 %>% 
+# sets_with_themes <- lego_datasets$sets %>%
+  left_join(lego_datasets12 %>%
+  # left_join(lego_datasets$themes %>%
               select(id, theme_name = name),
             by = c(theme_id = "id")) %>%
   mutate(num_parts = na_if(num_parts, 0))
@@ -136,16 +147,23 @@ sets_with_themes %>%
 - Part categories 
 
 ```{r}
+lego_datasets03 <- lego_datasets[3] %>% tibble() %>% unnest(c(.))
+lego_datasets05 <- lego_datasets[5] %>% tibble() %>% unnest(c(.))
+lego_datasets01 <- lego_datasets[1] %>% tibble() %>% unnest(c(.))
+
 # Most recent version of each inventory for each set_num
-inventories_current <- lego_datasets$inventories %>%
+inventories_current <- lego_datasets03 %>%
+# inventories_current <- lego_datasets$inventories %>%
   arrange(desc(version)) %>%
   distinct(set_num, .keep_all = TRUE) %>%
   select(inventory_id = id, set_num)
 
 set_parts <- sets_with_themes %>%
   inner_join(inventories_current, by = "set_num") %>%
-  inner_join(lego_datasets$inventory_parts, by = "inventory_id", suffix = c("", "_inventory")) %>%
-  left_join(lego_datasets$colors %>%
+  inner_join(lego_datasets05, by = "inventory_id", suffix = c("", "_inventory")) %>%
+  # inner_join(lego_datasets$inventory_parts, by = "inventory_id", suffix = c("", "_inventory")) %>%
+  left_join(lego_datasets01 %>%
+  # left_join(lego_datasets$colors %>%
               rename(color = name), by = c(color_id = "id")) %>%
   mutate(rgb = paste0("#", rgb))
 
